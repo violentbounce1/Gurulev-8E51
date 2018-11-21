@@ -12,3 +12,4 @@
 
 Выходной слой - полносвязный с 10 нейронами и акт.функцией softmax
 
+Ссылка на датасет - https://github.com/zalandoresearch/fashion-mnist#loading-data-with-other-machine-learning-libraries
