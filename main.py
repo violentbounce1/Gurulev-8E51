@@ -1,59 +1,114 @@
 # импортируем необходимые библиотеки
+
 import os
+import random
 import numpy as np
 import tensorflow as tf
 import keras
 
+from keras.callbacks import ModelCheckpoint
 from keras.models import Sequential
-from keras.layers import Dense, Activation, Conv2D, Flatten
-from keras.optimizers import adam
+from keras.layers import Dense, Activation, Conv2D, Flatten, MaxPooling2D, Dropout
 from keras.layers.core import Flatten
 
-# импортируем датасет MNIST Fashion
+
+# импортируем датасет Fashion MNIST
 
 from keras.datasets import fashion_mnist
 
 ((x_train, y_train), (x_test, y_test)) = fashion_mnist.load_data()
 
-# производим reshape обучающей и тестовой части датасета
+# определим классы изображений
 
-x_test = np.reshape(x_test, (x_test.shape[0], 28, 28, 1))
-x_train = np.reshape(x_train, (x_train.shape[0], 28, 28, 1))
+fashion_mnist_labels = ["T-shirt/top",  # класс 0
+                        "Trouser",      # класс 1
+                        "Pullover",     # класс 2
+                        "Dress",        # класс 3
+                        "Coat",         # класс 4
+                        "Sandal",       # класс 5
+                        "Shirt",        # класс 6
+                        "Sneaker",      # класс 7
+                        "Bag",          # класс 8
+                        "Ankle boot"]   # класс 9
 
-# проверим размерность обучающего и тестового наборов
+# проверим случайное изображение
 
-print("Training set (images) shape: {shape}".format(shape=x_train.shape))
-print("Training set (labels) shape: {shape}".format(shape=y_train.shape))
-print("Test set (images) shape: {shape}".format(shape=x_test.shape))
-print("Test set (labels) shape: {shape}".format(shape=y_test.shape))
+img_index = random.randint(0, 59999)
+label_index = y_train[img_index]
+print ("y = " + str(label_index) + " " +(fashion_mnist_labels[label_index]))
 
-# обучающие образцы датасета
+# нормализуем данные
 
-num_train, depth, height, width = x_train.shape
+x_train = x_train.astype('float32') / 255
+x_test = x_test.astype('float32') / 255
 
-# Fashion MNIST имеет 10 уникальных классов
+# выведем число обучающих и тестовых изображений
 
-num_classes = np.unique(y_train).shape[0]
+print("Number of train data - " + str(len(x_train)))
+print("Number of test data - " + str(len(x_test)))
 
-# One-hot encoding
+# разобьем данные на тестовую и валидационную выборку
 
-Y_train = keras.utils.to_categorical(y_train, num_classes)
-Y_test = keras.utils.to_categorical(y_test, num_classes)
+(x_train, x_valid) = x_train[5000:], x_train[:5000]
+(y_train, y_valid) = y_train[5000:], y_train[:5000]
 
-# создаем структуру нейронной сети - полносвязный слой с 784 нейронами, сверточный с 20, два полносвязных со 128, выходной слой с 10 - 10 классов
+# изменим вид входных данных с (28, 28) на (28, 28, 1) для работы с Conv2D
+
+w, h = 28, 28
+x_train = x_train.reshape(x_train.shape[0], w, h, 1)
+x_valid = x_valid.reshape(x_valid.shape[0], w, h, 1)
+x_test = x_test.reshape(x_test.shape[0], w, h, 1)
+
+# one-hot encoding - имеем изображения 10 классов
+
+y_train = tf.keras.utils.to_categorical(y_train, 10)
+y_valid = tf.keras.utils.to_categorical(y_valid, 10)
+y_test = tf.keras.utils.to_categorical(y_test, 10)
+
+# выведем количество изображений во всех наборах данных
+
+print(x_train.shape[0], 'train set')
+print(x_valid.shape[0], 'validation set')
+print(x_test.shape[0], 'test set')
+
+# создадим архитектуру нейронной сети
 
 model = Sequential()
-model.add(Dense(784, activation='relu'))
-model.add(Conv2D(20, (5, 5), activation='relu', input_shape=(28, 28, 1)))
-model.add(Dense(128, activation='relu'))
+
+model.add(Conv2D(filters=64, kernel_size=2, padding='same', activation='relu', input_shape=(28,28,1)))
+model.add(MaxPooling2D(pool_size=2))
+model.add(Dropout(0.3))
+
+model.add(Conv2D(filters=32, kernel_size=2, padding='same', activation='relu'))
+model.add(MaxPooling2D(pool_size=2))
+model.add(Dropout(0.3))
 
 model.add(Flatten())
 
-model.add(Dense(128, activation='relu'))
+model.add(Dense(256, activation='relu'))
+model.add(Dropout(0.5))
 model.add(Dense(10, activation='softmax'))
 
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-model.fit(x_train, Y_train, epochs=3, batch_size=32)
-score = model.evaluate(x_test, Y_test, batch_size=32)
-print(np.mean(score)*100)
+# посмотрим количество параметров модели и т.п.
 
+model.summary()
+
+# компиляция модели и сохранение модели с лучшими весами после каждой эпохи
+
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+checkpointer = ModelCheckpoint(filepath='model.weights.best.hdf5', verbose = 1, save_best_only=True)
+
+model.fit(x_train, y_train, batch_size=64, epochs=10, validation_data=(x_valid, y_valid), callbacks=[checkpointer])
+
+# загрузим файл с наилучшими весами
+
+model.load_weights('model.weights.best.hdf5')
+
+# проверим модель на тестовой выборке
+
+score = model.evaluate(x_test, y_test, verbose=0)
+
+# выведем точность проверки
+
+print('\n', 'Test Accuracy:', score[1]*100, '%')
