@@ -15,3 +15,5 @@
 Ссылка на датасет - https://github.com/zalandoresearch/fashion-mnist#loading-data-with-other-machine-learning-libraries
 
 В файле model.weights - модель с наилучшими весами в результате обучения длительностью 10 эпох.
+
+Test Accuracy = 90.91% - для 10 эпох.
