@@ -96,9 +96,7 @@ model.summary()
 # компиляция модели и сохранение модели с лучшими весами после каждой эпохи
 
 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-
 checkpointer = ModelCheckpoint(filepath='model.weights.best.hdf5', verbose = 1, save_best_only=True)
-
 model.fit(x_train, y_train, batch_size=64, epochs=10, validation_data=(x_valid, y_valid), callbacks=[checkpointer])
 
 # загрузим файл с наилучшими весами
