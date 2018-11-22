@@ -13,3 +13,5 @@
 Выходной слой - полносвязный с 10 нейронами и акт.функцией softmax
 
 Ссылка на датасет - https://github.com/zalandoresearch/fashion-mnist#loading-data-with-other-machine-learning-libraries
+
+В файле model.weights - модель с наилучшими весами в результате обучения длительностью 10 эпох.
